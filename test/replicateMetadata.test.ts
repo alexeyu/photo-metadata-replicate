@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { type MergeSchema, replicateMetadata } from "../src/index.js";
+import {
+  type MergeSchema,
+  replicateMetadata,
+  replicateMetadataToAll,
+} from "../src/index.js";
 
 describe("replicateMetadata (union strategy)", () => {
   const schema: MergeSchema = { Keywords: "union" };
@@ -67,5 +71,102 @@ describe("replicateMetadata (union strategy)", () => {
 
     expect(source.Keywords).toEqual(["b"]);
     expect(target.Keywords).toEqual(["a"]);
+  });
+});
+
+describe("replicateMetadata (overwrite-if-present strategy)", () => {
+  const schema: MergeSchema = {
+    Caption: "overwrite-if-present",
+    Description: "overwrite-if-present",
+  };
+
+  it("copies source's value onto target when present", () => {
+    const source = { Caption: "caption", Description: "description" };
+    const target = {};
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: "caption",
+      Description: "description",
+    });
+  });
+
+  it("replaces target's existing value with source's, when source is present", () => {
+    const source = { Caption: "new caption" };
+    const target = { Caption: "old caption" };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: "new caption",
+    });
+  });
+
+  it("does not blank out target when source's value is an empty string", () => {
+    const source = { Caption: "" };
+    const target = { Caption: "existing caption" };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: "existing caption",
+    });
+  });
+
+  it("does not blank out target when source's value is absent", () => {
+    const source = {};
+    const target = { Caption: "existing caption" };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: "existing caption",
+    });
+  });
+
+  it("leaves target absent when both source and target are absent", () => {
+    const source = {};
+    const target = {};
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: undefined,
+      Description: undefined,
+    });
+  });
+
+  it("handles numeric scalar values", () => {
+    const ratingSchema: MergeSchema = { Rating: "overwrite-if-present" };
+    const source = { Rating: 5 };
+    const target = { Rating: 3 };
+
+    expect(replicateMetadata(ratingSchema, source, target)).toEqual({
+      Rating: 5,
+    });
+  });
+});
+
+describe("replicateMetadataToAll", () => {
+  const schema: MergeSchema = {
+    Keywords: "union",
+    Caption: "overwrite-if-present",
+  };
+
+  it("applies the same schema and source to every target independently", () => {
+    const source = { Keywords: ["summer"], Caption: "shoot caption" };
+    const targets = [
+      { Keywords: ["beach"], Caption: "" },
+      { Keywords: ["family"], Caption: "already captioned" },
+    ];
+
+    expect(replicateMetadataToAll(schema, source, targets)).toEqual([
+      { Keywords: ["beach", "summer"], Caption: "shoot caption" },
+      { Keywords: ["family", "summer"], Caption: "shoot caption" },
+    ]);
+  });
+
+  it("returns one merged result per target, same order as input", () => {
+    const source = { Caption: "x" };
+    const targets = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+    const result = replicateMetadataToAll(schema, source, targets);
+
+    expect(result.map((metadata) => metadata.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("returns an empty array for an empty target list", () => {
+    expect(replicateMetadataToAll(schema, { Caption: "x" }, [])).toEqual([]);
   });
 });
