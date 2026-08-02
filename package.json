@@ -1,6 +1,6 @@
 {
   "name": "photo-metadata-replicate",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Replicate metadata from one source item onto a set of targets: union list fields, fill in scalar fields if present, never clobber.",
   "keywords": [
     "metadata",
