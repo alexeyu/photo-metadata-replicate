@@ -31,7 +31,7 @@ type StrategyMerger = (
   targetValue: FieldValue,
 ) => FieldValue;
 
-/** Merging logic per strategy. Keyed by `MergeStrategy` so adding a new strategy forces adding its merger here. */
+/** Merging logic per strategy. Keyed by `MergeStrategy` so a new strategy must add its merger. */
 const strategyMergers: Record<MergeStrategy, StrategyMerger> = {
   union: mergeUnion,
   "overwrite-if-present": mergeOverwriteIfPresent,
@@ -76,7 +76,7 @@ export function replicateMetadataToAll(
 function isPresentItem(
   item: MetadataValue | null | undefined,
 ): item is MetadataValue {
-  return item !== undefined && item !== null && item !== "";
+  return item != null && item !== "";
 }
 
 /** A field's values as a list, dropping entries that carry no information. */
@@ -85,7 +85,6 @@ function toPresentList(value: FieldValue): MetadataValue[] {
   return items.filter(isPresentItem);
 }
 
-/** A field carries information if it holds at least one present item. */
 function isPresent(value: FieldValue): boolean {
   return toPresentList(value).length > 0;
 }
@@ -102,7 +101,6 @@ function mergeUnion(
   return [...merged];
 }
 
-/** Source's value if it carries information, otherwise target's original value. */
 function mergeOverwriteIfPresent(
   sourceValue: FieldValue,
   targetValue: FieldValue,
