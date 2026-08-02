@@ -1,17 +1,34 @@
 # photo-metadata-replicate
 
+[![CI](https://github.com/alexeyu/photo-metadata-replicate/actions/workflows/ci.yml/badge.svg)](https://github.com/alexeyu/photo-metadata-replicate/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/photo-metadata-replicate.svg)](https://www.npmjs.com/package/photo-metadata-replicate)
+[![license: MIT](https://img.shields.io/npm/l/photo-metadata-replicate.svg)](./LICENSE)
 
-Copy metadata from one item onto a set of targets. Keywords are merged
-(union), other fields are copied only if the source has a value. Nothing
-gets overwritten with empty data.
+Your user tags one photo and wants it applied to the other forty. This
+library computes what each target's metadata should become, in memory,
+before anything touches a file.
 
-## Why
+A target's own keywords survive the merge, and a field the source lacks
+never blanks the target's. You get plain objects back, so you can show the
+result in a UI, diff it, or hand it to a writer.
 
-Tagging one photo and applying it to the rest of a shoot is a common
-workflow. Doing it naively causes two bugs: overwriting a target's own
-keywords, and blanking a caption because the source doesn't have one. This
-library avoids both. It's pure logic: no file access, no UI, no dependencies.
+## When this helps
+
+You hold metadata as objects: a selection in a tagging UI, rows from a
+database, a model the user is editing. This decides what the merged result
+should be and gives it back as data, which is the part you cannot get from
+a tool that reads and writes files in one step.
+
+If your inputs are files on disk and you only need the write to happen,
+`exiftool` copies between files directly and will serve you better:
+
+```sh
+exiftool -tagsFromFile source.jpg "-Subject+<Subject" targets/
+```
+
+That unions keywords and leaves a target's field alone when the source
+lacks it, so reach for this library when you need the merged result as data
+first. It's pure logic: no file access, no UI, no dependencies.
 
 ## Install
 
@@ -63,10 +80,16 @@ Same, applied to each item in `targets` independently.
 ### `MergeStrategy`
 
 - `"union"`: for list fields (e.g. `Keywords`, `Subject`). Keeps target's
-  items, adds any new ones from source, in order, no duplicates.
+  items in their original order, appends source's new ones, no duplicates.
+  Declaring it on a scalar field turns that field into a list, so use it
+  only where you expect arrays.
 - `"overwrite-if-present"`: for scalar fields (e.g. `Caption`, `Title`,
-  `Description`). Uses source's value if it has one, otherwise keeps
-  target's value. Never blanks a target with an empty source.
+  `Description`). Uses source's value when that value carries information,
+  otherwise keeps target's.
+
+An empty value never overwrites a target and never enters a list. Empty
+means an absent field, an empty string, an empty array, or an array holding
+only those.
 
 ### `Metadata`
 
