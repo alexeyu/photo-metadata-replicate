@@ -5,30 +5,23 @@
 [![license: MIT](https://img.shields.io/npm/l/photo-metadata-replicate.svg)](./LICENSE)
 
 Your user tags one photo and wants it applied to the other forty. This
-library computes what each target's metadata should become, in memory,
-before anything touches a file.
+library computes what each target's metadata should become and returns it
+as plain objects, so you can show the result in a UI, diff it, or hand it
+to a writer.
 
-A target's own keywords survive the merge, and a field the source lacks
-never blanks the target's. You get plain objects back, so you can show the
-result in a UI, diff it, or hand it to a writer.
-
-## When this helps
-
-You hold metadata as objects: a selection in a tagging UI, rows from a
-database, a model the user is editing. This decides what the merged result
-should be and gives it back as data, which is the part you cannot get from
-a tool that reads and writes files in one step.
+The target keeps its keywords, and an empty source field erases nothing.
+It's pure logic: no file access, no UI, no dependencies.
 
 If your inputs are files on disk and you only need the write to happen,
-`exiftool` copies between files directly and will serve you better:
+`exiftool` does that same merge directly and will serve you better:
 
 ```sh
 exiftool -tagsFromFile source.jpg "-Subject+<Subject" targets/
 ```
 
-That unions keywords and leaves a target's field alone when the source
-lacks it, so reach for this library when you need the merged result as data
-first. It's pure logic: no file access, no UI, no dependencies.
+Reach for this library when the metadata lives in objects (a selection in
+a tagging UI, rows from a database, a model the user is editing) and you
+need the merged result before anything touches a file.
 
 ## Install
 
