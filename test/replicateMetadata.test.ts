@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type MergeSchema,
+  type Metadata,
   replicateMetadata,
   replicateMetadataToAll,
 } from "../src/index.js";
@@ -41,6 +42,33 @@ describe("replicateMetadata (union strategy)", () => {
 
     expect(replicateMetadata(schema, source, target)).toEqual({
       Keywords: ["a", "b"],
+    });
+  });
+
+  it("does not add an empty string from source as an item", () => {
+    const source = { Keywords: "" };
+    const target = { Keywords: ["a"] };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Keywords: ["a"],
+    });
+  });
+
+  it("drops empty items already held by target", () => {
+    const source = { Keywords: ["b"] };
+    const target = { Keywords: ["a", ""] };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Keywords: ["a", "b"],
+    });
+  });
+
+  it("turns a scalar field into a list, so declare it only on arrays", () => {
+    const source = { Keywords: "from source" };
+    const target = { Keywords: "from target" };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Keywords: ["from target", "from source"],
     });
   });
 
@@ -105,6 +133,35 @@ describe("replicateMetadata (overwrite-if-present strategy)", () => {
 
     expect(replicateMetadata(schema, source, target)).toEqual({
       Caption: "existing caption",
+    });
+  });
+
+  it("does not blank out target when source's value is an empty list", () => {
+    const source = { Keywords: [] };
+    const target = { Keywords: ["keep", "me"] };
+
+    expect(
+      replicateMetadata({ Keywords: "overwrite-if-present" }, source, target),
+    ).toEqual({ Keywords: ["keep", "me"] });
+  });
+
+  it("does not blank out target when source's list holds only empties", () => {
+    const source = { Keywords: ["", ""] };
+    const target = { Keywords: ["keep"] };
+
+    expect(
+      replicateMetadata({ Keywords: "overwrite-if-present" }, source, target),
+    ).toEqual({ Keywords: ["keep"] });
+  });
+
+  it("does not blank out target when source's value is null", () => {
+    // `null` is outside MetadataValue, but JS callers and JSON round-trips
+    // produce it, and it must not be mistaken for a real value.
+    const source = { Caption: null } as unknown as Metadata;
+    const target = { Caption: "keep me" };
+
+    expect(replicateMetadata(schema, source, target)).toEqual({
+      Caption: "keep me",
     });
   });
 
